@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">IGalleryDemo</string>
+    <string name="select_single">单选</string>
+    <string name="select_multiple">多选</string>
+    <string name="button_open">打开</string>
+</resources>

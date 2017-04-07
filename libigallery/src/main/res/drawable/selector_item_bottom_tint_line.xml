@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--normal 背景色：白色，底部带浅灰色线-->
+<!--pressed 背景色灰色-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/white_press" android:state_pressed="true"/>
+    <item android:drawable="@color/color_white"/>
+</selector>
