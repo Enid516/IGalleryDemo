@@ -7,10 +7,15 @@ package cn.igallery.ui;
 
 public class GalleryTheme {
     private int statusBarColor;
+
     private int toolbarColor;
+
     private int activityWidgetColor;
+
     private int toolbarWidgetColor;
+
     private int cropFrameColor;
+
     public GalleryTheme(Builder builder){
         this.statusBarColor = builder.statusBarColor;
         this.toolbarColor = builder.toolbarColor;

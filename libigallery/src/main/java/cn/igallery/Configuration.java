@@ -20,8 +20,6 @@ public class Configuration implements Serializable{
     private int maxChoiceSize = 1;
     /** the selected image list*/
     private List<ImageModel> selectedList;
-    /** the all image list*/
-    private List<ImageModel> imageList;
 
     public enum ImageChoiceModel implements Serializable{
         SINGLE,
@@ -52,17 +50,6 @@ public class Configuration implements Serializable{
 
     public void setSelectedList(ArrayList<ImageModel> selectedList) {
         this.selectedList = selectedList;
-    }
-
-    public List<ImageModel> getImageList() {
-        if (imageList == null) {
-            imageList = new ArrayList<>();
-        }
-        return imageList;
-    }
-
-    public void setImageList(List<ImageModel> imageList) {
-        this.imageList = imageList;
     }
 
     public String addSelectImage(ImageModel imageModel) {

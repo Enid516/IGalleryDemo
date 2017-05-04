@@ -14,6 +14,8 @@ import com.enid.igallerydemo.R;
 
 import java.util.List;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
 import cn.igallery.model.ImageModel;
 import cn.igallery.ui.adapter.RecyclerViewHolder;
 
@@ -70,13 +72,12 @@ public class ImageSelectedAdapter extends RecyclerView.Adapter<ImageSelectedAdap
     }
 
     class ViewHolder extends RecyclerViewHolder {
-        private ImageView imageView;
-        private ImageView iconDelete;
+        @BindView(R.id.imageView) ImageView imageView;
+        @BindView(R.id.iconDelete) ImageView iconDelete;
 
         public ViewHolder(View view) {
             super(view);
-            imageView = (ImageView) view.findViewById(R.id.imageView);
-            iconDelete = (ImageView) view.findViewById(R.id.iconDelete);
+            ButterKnife.bind(this,view);
         }
     }
 

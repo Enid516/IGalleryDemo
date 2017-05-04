@@ -17,6 +17,9 @@ import com.enid.igallerydemo.R;
 import java.util.ArrayList;
 import java.util.List;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import cn.igallery.Configuration.ImageChoiceModel;
 import cn.igallery.GalleryOperator;
 import cn.igallery.model.ImageModel;
@@ -28,29 +31,32 @@ import cn.igallery.rxbus.event.ImageMultipleResultEvent;
  * Created by enid on 2017/4/7.
  */
 
-public class MainActivity extends PermissionActivity implements View.OnClickListener {
-    private RadioButton rbSingle;
-    private RadioButton rbMultiple;
-    private Button btnOpen;
+public class MainActivity extends PermissionActivity {
+    @BindView(R.id.rbSingle)
+    RadioButton rbSingle;
+
+    @BindView(R.id.rbMultiple)
+    RadioButton rbMultiple;
+
+    @BindView(R.id.btnOpen)
+    Button btnOpen;
+
     private List<ImageModel> mImageModelList;
+
     private ImageSelectedFragment imagesFragment;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        rbSingle = (RadioButton) findViewById(R.id.rbSingle);
-        rbMultiple = (RadioButton) findViewById(R.id.rbMultiple);
-        btnOpen = (Button) findViewById(R.id.btnOpen);
-        btnOpen.setOnClickListener(this);
+        ButterKnife.bind(this);
         mImageModelList = new ArrayList<>();
         addImageSelectedGridFragment();
     }
 
-    @Override
-    public void onClick(View v) {
-        if (v.getId() == btnOpen.getId())
-            requestPermission();
+    @OnClick(R.id.btnOpen)
+    public void btnOpen() {
+        requestPermission();
     }
 
     private void requestPermission() {
@@ -70,7 +76,7 @@ public class MainActivity extends PermissionActivity implements View.OnClickList
                                 }
                             })
                             .openGallery(MainActivity.this);
-                else if(rbMultiple.isChecked())
+                else if (rbMultiple.isChecked())
                     GalleryOperator.getInstance()
                             .selected((ArrayList<ImageModel>) mImageModelList)
                             .setMaxSize(9)
@@ -99,7 +105,8 @@ public class MainActivity extends PermissionActivity implements View.OnClickList
 
     private void showPermissionDialog(List<String> permissions) {
         StringBuilder stringBuilder = new StringBuilder();
-        if (permissions.contains(Manifest.permission.READ_EXTERNAL_STORAGE)) stringBuilder.append("应用功能需要请求SD卡访问权限" + "\n");
+        if (permissions.contains(Manifest.permission.READ_EXTERNAL_STORAGE))
+            stringBuilder.append("应用功能需要请求SD卡访问权限" + "\n");
         if (permissions.contains(Manifest.permission.CAMERA)) stringBuilder.append("应用需要请求相机访问权限");
         new AlertDialog.Builder(this)
                 .setCancelable(false)
@@ -113,7 +120,7 @@ public class MainActivity extends PermissionActivity implements View.OnClickList
                 .setNegativeButton("取消", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Toast.makeText(MainActivity.this,"已取消",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "已取消", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .create()

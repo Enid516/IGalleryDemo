@@ -4,11 +4,13 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.support.v4.content.FileProvider;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -112,23 +114,38 @@ public class GalleryOperator {
      * @return
      */
     public String openCamera(Activity context) {
-        String imagePath = "";
+        File takeImageFile = null;
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (intent.resolveActivity(context.getPackageManager()) != null) {
-            //set photo output path
+            //Set photo output path
             File imageStoreDir = new File(Environment.getExternalStorageDirectory(), "/DCIM/iGallery/");
             if (!imageStoreDir.exists()) {
                 imageStoreDir.mkdirs();
             }
+
+            //Set image file
             String fileName = String.format(IMAGE_STORE_FILE_NAME, new SimpleDateFormat("yyyyMMddHHmmss", Locale.CHINA).format(new Date()));
-            imagePath = new File(imageStoreDir, fileName).getAbsolutePath();
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(imagePath)));
+            takeImageFile = new File(imageStoreDir, fileName);
+
+            //get uri of the image file
+            Uri uri ;
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
+                uri = Uri.fromFile(takeImageFile);
+            } else {
+                /**
+                 * 7.0 调用系统相机拍照不再允许使用Uri的方式，应该替换为FileProvider
+                 * 并且这样可以解决MIUI系统上拍照返回Size为0的情况
+                 */
+                uri = FileProvider.getUriForFile(context,ProviderUtil.getFileProviderName(context), takeImageFile);
+            }
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+
             //open camera
             context.startActivityForResult(intent, REQUEST_CODE_OPEN_CAMERA);
         } else {
             Log.e(TAG,"the camera is not available");
         }
-        return imagePath;
+        return takeImageFile.getAbsolutePath();
     }
 
 }

@@ -1,7 +1,6 @@
 package cn.igallery.ui.activity;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -13,11 +12,12 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import cn.enid.igallery.R;
 import cn.igallery.Configuration;
+import cn.igallery.GalleryOperator;
 import cn.igallery.MediaScannerHelper;
 import cn.igallery.anim.Animation;
 import cn.igallery.anim.AnimationListener;
@@ -26,14 +26,19 @@ import cn.igallery.anim.SlideOutUnderneathAnimation;
 import cn.igallery.model.BucketModel;
 import cn.igallery.model.ImageModel;
 import cn.igallery.rxbus.RxBus;
+import cn.igallery.rxbus.RxBusResultSubscriber;
+import cn.igallery.rxbus.event.BaseResultEvent;
 import cn.igallery.rxbus.event.ImageCropResultEvent;
 import cn.igallery.rxbus.event.ImageMultipleResultEvent;
 import cn.igallery.ui.adapter.BucketListAdapter;
 import cn.igallery.ui.adapter.ImageGridAdapter;
 import cn.igallery.util.GalleryUtil;
 import cn.igallery.util.MediaUtil;
+import cn.igallery.util.Utils;
 import cn.igallery.util.ViewUtil;
 import rx.Observer;
+
+import static cn.igallery.GalleryOperator.REQUEST_CODE_OPEN_CAMERA;
 
 /**
  * Created by enid on 2016/9/7.
@@ -41,15 +46,26 @@ import rx.Observer;
  */
 public class ImageGridActivity extends BaseActivity implements View.OnClickListener {
     public static final String EXTRA_CONFIGURATION = "extra_configuration";
+
     private ImageGridAdapter imageGridAdapter;
-    private static final int REQUEST_CODE = 0x1001;
+
+    public static final int REQUEST_CODE_FOR_PREVIEW = 0x1001;
+
     private Button btnOK;
+
     private TextView btnAllImage;
+
     private TextView btnPreview;
+
     private RecyclerView recyclerViewBucket;
+
     private LinearLayout layoutBucketOverview;
 
+    private ArrayList<ImageModel> mImageList;
+
     private static final int MAX_LIMIT = 50;
+
+    private String takeImagePath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,20 +103,35 @@ public class ImageGridActivity extends BaseActivity implements View.OnClickListe
         mConfiguration = (Configuration) bundle.getSerializable(EXTRA_CONFIGURATION);
 
         //set adapter
-        imageGridAdapter = new ImageGridAdapter(this, mConfiguration);
+        mImageList = new ArrayList<>();
+        imageGridAdapter = new ImageGridAdapter(this,mImageList, mConfiguration);
+
         //register on item onclick listener
         imageGridAdapter.setOnItemOnClickListener(new ImageGridAdapter.OnItemOnClickListener() {
             @Override
             public void onItemClick(View v, int position) {
-                if (mConfiguration.getChoiceModel() == Configuration.ImageChoiceModel.SINGLE) {
-                    String path = mConfiguration.getImageList().get(position).getOriginalPath();
+                if (position == 0) {
+                    takeImagePath = GalleryOperator.getInstance()
+                            .setChoiceModel(Configuration.ImageChoiceModel.SINGLE)
+                            .subscribe(new RxBusResultSubscriber<ImageCropResultEvent>() {
+                                @Override
+                                protected void onEvent(ImageCropResultEvent resultEvent) {
+                                    ImageModel cameraImageModel = resultEvent.getImageModel();
+                                    ImageCropResultEvent event = new ImageCropResultEvent(cameraImageModel);
+                                    RxBus.getInstance().post(event);
+                                    finish();
+                                }
+                            })
+                            .openCamera(ImageGridActivity.this);
+                } else if (mConfiguration.getChoiceModel() == Configuration.ImageChoiceModel.SINGLE) {
+                    String path = mImageList.get(position).getOriginalPath();
                     ImageModel imageModel = new ImageModel();
                     imageModel.setOriginalPath(path);
                     ImageCropResultEvent event = new ImageCropResultEvent(imageModel);
                     RxBus.getInstance().post(event);
                     finish();
                 } else {
-                    startImagePreviewActivity(0, position);
+                    ImagePreviewActivity.actionStart(ImageGridActivity.this,mImageList,position,mConfiguration);
                 }
             }
 
@@ -138,13 +169,18 @@ public class ImageGridActivity extends BaseActivity implements View.OnClickListe
 
             @Override
             public void onNext(List<ImageModel> imageModels) {
-                mConfiguration.setImageList(imageModels);
-                imageGridAdapter.setData(mConfiguration);
-                imageGridAdapter.notifyDataSetChanged();
+                initData(imageModels);
+
             }
         };
         int mCurrentPage = 0;
         MediaScannerHelper.generateImagesWithBucketId(observer, this, bucketId, mCurrentPage + 1, MAX_LIMIT);
+    }
+
+    private void initData(List<ImageModel> imageModels) {
+        mImageList.add(Utils.getCameraImageModel());
+        mImageList.addAll(imageModels);
+        imageGridAdapter.setData(mImageList);
     }
 
     private void getBuckets() {
@@ -184,35 +220,33 @@ public class ImageGridActivity extends BaseActivity implements View.OnClickListe
         MediaScannerHelper.getImageBuckets(observer, this, 0, Integer.MAX_VALUE);
     }
 
-    /**
-     * 跳转到图片预览界面
-     *
-     * @param type     0 预览所有图片
-     *                 1 预览已选图片
-     * @param position viewPager显示的当前页
-     */
-    private void startImagePreviewActivity(int type, int position) {
-        Intent intent = new Intent(this, ImagePreviewActivity.class);
-        intent.putExtra(ImagePreviewActivity.IMAGE_PREVIEW_TYPE_EXTRA, type);
-        intent.putExtra(ImagePreviewActivity.IMAGE_CURRENT_INDEX_EXTRA, position);
-        intent.putExtra(ImagePreviewActivity.IMAGE_CONFIGURATION_EXTRA, mConfiguration);
-        startActivityForResult(intent, REQUEST_CODE);
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE){
+        if (requestCode == REQUEST_CODE_FOR_PREVIEW) {
             mConfiguration = (Configuration) data.getSerializableExtra(ImagePreviewActivity.IMAGE_CONFIGURATION_EXTRA);
             if (resultCode == ImagePreviewActivity.RESULT_CODE_SELECTED) {
                 btnOK.setText(GalleryUtil.getBtnOKString(mConfiguration.getSelectedList().size(), mConfiguration.getMaxChoiceSize()));
                 btnPreview.setText(GalleryUtil.getBtnPreviewString(mConfiguration.getSelectedList().size()));
-                imageGridAdapter.setData(mConfiguration);
+                imageGridAdapter.setData(mImageList);
             } else if (resultCode == ImagePreviewActivity.RESULT_CODE_COMPLETED) {
                 ImageMultipleResultEvent event = new ImageMultipleResultEvent(mConfiguration.getSelectedList());
                 RxBus.getInstance().post(event);
                 finish();
             }
+        } else if (requestCode == REQUEST_CODE_OPEN_CAMERA) {
+            ImageModel imageModel = new ImageModel();
+            imageModel.setOriginalPath(takeImagePath);
+            BaseResultEvent event;
+            if (mConfiguration.getChoiceModel() == Configuration.ImageChoiceModel.SINGLE) {
+                event = new ImageCropResultEvent(imageModel);
+            } else {
+                ArrayList<ImageModel> imageModels = new ArrayList<>();
+                imageModels.add(imageModel);
+                event = new ImageMultipleResultEvent(imageModels);
+            }
+            if (event != null) RxBus.getInstance().post(event);
+            finish();
         }
     }
 
@@ -227,14 +261,13 @@ public class ImageGridActivity extends BaseActivity implements View.OnClickListe
             finish();
         } else if (i == R.id.btnPreview) {
             if (mConfiguration.getSelectedList().size() > 0)
-                startImagePreviewActivity(1, 0);
+                ImagePreviewActivity.actionStart(this, (ArrayList<ImageModel>) mConfiguration.getSelectedList(),0,mConfiguration);
         } else if (i == R.id.btnAllImage || i == R.id.layoutBucketOverview) {
             if (layoutBucketOverview.getVisibility() == View.VISIBLE) {
                 showBucketOverview(false);
             } else {
                 showBucketOverview(true);
             }
-
         }
     }
 

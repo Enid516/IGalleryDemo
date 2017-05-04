@@ -16,6 +16,8 @@ import com.enid.igallerydemo.R;
 import java.util.ArrayList;
 import java.util.List;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
 import cn.igallery.model.ImageModel;
 
 /**
@@ -24,13 +26,23 @@ import cn.igallery.model.ImageModel;
 
 public class ImageSelectedFragment extends Fragment {
     private Context mContext;
+
     private List<ImageModel> mList;
+
     private ImageSelectedAdapter mAdapter;
+
+    private View rootView;
+
+    @BindView(R.id.recyclerView) RecyclerView recyclerView;
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_image_selected, null);
+        if (rootView == null) {
+            rootView = inflater.inflate(R.layout.fragment_image_selected, null);
+        }
+        ButterKnife.bind(this,rootView);
+        return rootView;
     }
 
     @Override
@@ -42,7 +54,6 @@ public class ImageSelectedFragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        RecyclerView recyclerView = (RecyclerView) view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new GridLayoutManager(mContext, 2));
 
         mList = new ArrayList<>();

@@ -14,6 +14,7 @@ import com.bumptech.glide.Glide;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 import cn.enid.igallery.R;
 import cn.igallery.Configuration;
@@ -31,6 +32,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.MyVi
     private ArrayList<ImageModel> mData;
     private OnItemOnClickListener mOnItemOnClickListener;
     private Configuration mConfiguration;
+    private ArrayList<ImageModel> mDatas;
 
     public interface OnItemOnClickListener {
         void onItemClick(View v, int position);
@@ -38,15 +40,14 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.MyVi
         void onItemCheck();
     }
 
-    public ImageGridAdapter(Context context, Configuration configuration) {
+    public ImageGridAdapter(Context context, ArrayList<ImageModel> datas, Configuration configuration) {
         this.mContext = context;
+        this.mData =  datas;
         this.mConfiguration = configuration;
-        this.mData = (ArrayList<ImageModel>) configuration.getImageList();
     }
 
-    public void setData(Configuration configuration) {
-        this.mConfiguration = configuration;
-        mData = (ArrayList<ImageModel>) configuration.getImageList();
+    public void setData(ArrayList<ImageModel> datas) {
+        mData = datas;
         notifyDataSetChanged();
     }
 
@@ -62,37 +63,41 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.MyVi
 
     @Override
     public void onBindViewHolder(final MyViewHolder holder, int position) {
-        final ImageModel imageModel = mData.get(position);
-        //设置是否显示checkBox
-        if (mConfiguration.getChoiceModel() == Configuration.ImageChoiceModel.MULTIPLE) {
-            holder.checkBox.setVisibility(View.VISIBLE);
-            holder.checkBox.setChecked(mConfiguration.getSelectedList() != null && mConfiguration.getSelectedList().contains(imageModel));//设置checkBox是否是选中状态
-            holder.checkBox.setOnClickListener(new CheckBoxClickListener(mData.get(position)));
+        if (position == 0) {
+            holder.imageView.setImageResource(R.drawable.gallery_ic_camera);
         } else {
-            holder.checkBox.setVisibility(View.INVISIBLE);
-        }
+            final ImageModel imageModel = mData.get(position);
+            //设置是否显示checkBox
+            if (mConfiguration.getChoiceModel() == Configuration.ImageChoiceModel.MULTIPLE) {
+                holder.checkBox.setVisibility(View.VISIBLE);
+                holder.checkBox.setChecked(mConfiguration.getSelectedList() != null && mConfiguration.getSelectedList().contains(imageModel));//设置checkBox是否是选中状态
+                holder.checkBox.setOnClickListener(new CheckBoxClickListener(mData.get(position)));
+            } else {
+                holder.checkBox.setVisibility(View.INVISIBLE);
+            }
 
-        //如果大缩略图或小缩略图不存在，则去创建
-        if (!new File(imageModel.getThumbnailBigPath()).exists() || !new File(imageModel.getThumbnailSmallPath()).exists()) {
-            Job job = new ImageThumbnailJob(mContext, imageModel);
-            RxJob.getInstance().addJob(job);
-        }
+            //如果大缩略图或小缩略图不存在，则去创建
+            if (!new File(imageModel.getThumbnailBigPath()).exists() || !new File(imageModel.getThumbnailSmallPath()).exists()) {
+                Job job = new ImageThumbnailJob(mContext, imageModel);
+                RxJob.getInstance().addJob(job);
+            }
 
-        //显示图片
-        String path = imageModel.getThumbnailSmallPath();
-        if (TextUtils.isEmpty(path)) {
-            path = imageModel.getThumbnailBigPath();
-        }
-        if (TextUtils.isEmpty(path)) {
-            path = imageModel.getOriginalPath();
-        }
-        Glide.with(mContext)
-                .load(path)
-                .centerCrop()
-                .into(holder.imageView);
-        //图片是否为选择状态
-        if (mConfiguration.getSelectedList().contains(imageModel)){
-            holder.checkBox.setChecked(true);
+            //显示图片
+            String path = imageModel.getThumbnailSmallPath();
+            if (TextUtils.isEmpty(path)) {
+                path = imageModel.getThumbnailBigPath();
+            }
+            if (TextUtils.isEmpty(path)) {
+                path = imageModel.getOriginalPath();
+            }
+            Glide.with(mContext)
+                    .load(path)
+                    .centerCrop()
+                    .into(holder.imageView);
+            //图片是否为选择状态
+            if (mConfiguration.getSelectedList().contains(imageModel)) {
+                holder.checkBox.setChecked(true);
+            }
         }
 
     }
@@ -105,6 +110,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.MyVi
     //checkBox click listener
     private class CheckBoxClickListener implements View.OnClickListener {
         ImageModel mImageModel;
+
         CheckBoxClickListener(ImageModel imageModel) {
             this.mImageModel = imageModel;
         }

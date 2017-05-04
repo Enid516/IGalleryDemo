@@ -13,5 +13,12 @@
             android:screenOrientation="portrait"/>
         <activity android:name="cn.igallery.ui.activity.ImagePreviewActivity"
             android:screenOrientation="portrait"/>
+        <provider
+            android:authorities="${applicationId}.provider"
+            android:name="cn.igallery.IGalleryProvider"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths"/>
+        </provider>
     </application>
 </manifest>

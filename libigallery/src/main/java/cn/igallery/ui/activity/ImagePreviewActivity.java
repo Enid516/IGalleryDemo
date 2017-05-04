@@ -1,5 +1,6 @@
 package cn.igallery.ui.activity;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.view.PagerAdapter;
@@ -35,17 +36,29 @@ import uk.co.senab.photoview.PhotoViewAttacher;
 
 public class ImagePreviewActivity extends BaseActivity implements View.OnClickListener {
     private static final String TAG = "ImagePreviewActivity";
+
     public static final int RESULT_CODE_SELECTED = 0x00011;
+
     public static final int RESULT_CODE_COMPLETED = 0x00012;
+
     public static final String IMAGE_CURRENT_INDEX_EXTRA = "imageCurrentIndex";
-    public static final String IMAGE_PREVIEW_TYPE_EXTRA = "imagePreviewType";
+
+    public static final String IMAGE_PREVIEW_LIST_EXTRA = "imagePreviewList";
+
     public static final String IMAGE_CONFIGURATION_EXTRA = "configuration";
+
     private int mCurrentIndex;
+
     private ViewPager viewPager;
+
     private CheckBox checkBox;
-    private List<ImageModel> previewList = new ArrayList<>();
+
+    private List<ImageModel> mPreviewList;
+
     private Button btnOK;
+
     private TextView textTitle;
+
     private LinearLayout layoutTop , layoutBottom;
 
     @Override
@@ -53,6 +66,15 @@ public class ImagePreviewActivity extends BaseActivity implements View.OnClickLi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.act_image_preview);
         init();
+    }
+
+    public static void actionStart(Activity context, ArrayList<ImageModel> imageModels,
+                                   int currentIndex, Configuration configuration) {
+        Intent intent = new Intent(context,ImagePreviewActivity.class);
+        intent.putExtra(IMAGE_PREVIEW_LIST_EXTRA,imageModels);
+        intent.putExtra(IMAGE_CURRENT_INDEX_EXTRA,currentIndex);
+        intent.putExtra(IMAGE_CONFIGURATION_EXTRA,configuration);
+        context.startActivityForResult(intent,ImageGridActivity.REQUEST_CODE_FOR_PREVIEW);
     }
 
     private void init() {
@@ -66,16 +88,16 @@ public class ImagePreviewActivity extends BaseActivity implements View.OnClickLi
         findViewById(R.id.btnReturn).setOnClickListener(this);
 
         //get data
+        mPreviewList = new ArrayList<>();
         Intent data = getIntent();
         mCurrentIndex = data.getIntExtra(ImagePreviewActivity.IMAGE_CURRENT_INDEX_EXTRA, 0);
-        int mPreviewType = data.getIntExtra(ImagePreviewActivity.IMAGE_PREVIEW_TYPE_EXTRA, 0);
+        mPreviewList = (List<ImageModel>) data.getSerializableExtra(ImagePreviewActivity.IMAGE_PREVIEW_LIST_EXTRA);
         mConfiguration = (Configuration) data.getSerializableExtra(ImagePreviewActivity.IMAGE_CONFIGURATION_EXTRA);
-        previewList.addAll(mPreviewType == 0 ? mConfiguration.getImageList() : mConfiguration.getSelectedList());
 
         //init imageView list
         final List<PhotoView> listView = new ArrayList<>();
         PhotoView photoView;
-        for (ImageModel image : previewList) {
+        for (ImageModel image : mPreviewList) {
             photoView = new PhotoView(this);
             Glide.with(this)
                     .load(image.getOriginalPath())
@@ -119,13 +141,13 @@ public class ImagePreviewActivity extends BaseActivity implements View.OnClickLi
 
         //set choice model
         if (mConfiguration.getChoiceModel() == Configuration.ImageChoiceModel.MULTIPLE) {
-            checkBox.setChecked(mConfiguration.getSelectedList().contains(previewList.get(mCurrentIndex)));
+            checkBox.setChecked(mConfiguration.getSelectedList().contains(mPreviewList.get(mCurrentIndex)));
         } else {
             checkBox.setVisibility(View.GONE);
         }
 
         //init display
-        textTitle.setText((mCurrentIndex + 1) + "/" + previewList.size());
+        textTitle.setText((mCurrentIndex + 1) + "/" + mPreviewList.size());
         btnOK.setText(GalleryUtil.getBtnOKString(mConfiguration.getSelectedList().size(), mConfiguration.getMaxChoiceSize()));
         btnOK.setOnClickListener(this);
     }
@@ -142,9 +164,9 @@ public class ImagePreviewActivity extends BaseActivity implements View.OnClickLi
             @Override
             public void onPageSelected(int position) {
                 mCurrentIndex = position;
-                ImageModel imageModel = previewList.get(position);
+                ImageModel imageModel = mPreviewList.get(position);
                 checkBox.setChecked(mConfiguration.getSelectedList().contains(imageModel));
-                textTitle.setText((position + 1) + "/" + previewList.size());
+                textTitle.setText((position + 1) + "/" + mPreviewList.size());
             }
 
             @Override
@@ -159,7 +181,7 @@ public class ImagePreviewActivity extends BaseActivity implements View.OnClickLi
                 @Override
                 public void onClick(View v) {
                     Log.i(TAG,"checkBox is checked :" + checkBox.isChecked());
-                    ImageModel imageModel = previewList.get(mCurrentIndex);
+                    ImageModel imageModel = mPreviewList.get(mCurrentIndex);
                     if (checkBox.isChecked()) {
                         String message = mConfiguration.addSelectImage(imageModel);
                         if (!TextUtils.isEmpty(message)) {
